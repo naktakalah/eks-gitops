@@ -1,0 +1,34 @@
+# Route 53 access comes from Pod Identity: namespace external-dns, service account external-dns
+provider:
+  name: aws
+
+serviceAccount:
+  create: true
+  name: external-dns
+
+env:
+  - name: AWS_DEFAULT_REGION
+    value: us-east-1
+
+domainFilters:
+  - example.com
+
+# ingress only: Services aren't filtered by class and could publish internal load balancers
+sources:
+  - ingress
+
+# sync only deletes the records it owns (TXT records with this owner id)
+policy: sync
+registry: txt
+txtOwnerId: my-eks-cluster
+
+extraArgs:
+  - --aws-zone-type=public
+  - --ingress-class=alb-public
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 256Mi

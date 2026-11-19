@@ -1,0 +1,6 @@
+# change the tag to blue, yellow, green, red, purple or orange to watch a canary in the browser
+image:
+  tag: blue
+
+ingress:
+  host: demo.example.com

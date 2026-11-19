@@ -1,0 +1,22 @@
+# no prune: deleting the IngressClass by mistake would take down every ALB
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: alb
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/naktakalah/eks-gitops.git
+    targetRevision: main
+    path: platform/manifests/alb
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

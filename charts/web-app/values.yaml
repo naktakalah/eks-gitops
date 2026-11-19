@@ -1,0 +1,133 @@
+nameOverride: ""
+fullnameOverride: ""
+
+commonLabels: {}
+
+image:
+  repository: argoproj/rollouts-demo
+  # empty = appVersion. Use immutable tags (commit SHA) so a rollback is just changing this value
+  tag: ""
+  pullPolicy: IfNotPresent
+
+containerPort: 8080
+
+# ignored when autoscaling.enabled, the HPA owns the replicas
+replicaCount: 2
+revisionHistoryLimit: 5
+# if the new pods aren't Ready in time, the Rollout aborts and goes back to stable
+progressDeadlineSeconds: 600
+progressDeadlineAbort: true
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
+
+# env vars from Secrets Manager: every key of the JSON secret becomes an env var
+externalSecret:
+  enabled: false
+  secretStore:
+    kind: ClusterSecretStore
+    name: aws-secrets-manager
+  remoteKey: ""
+  refreshInterval: 1h
+
+# non-sensitive env vars, they win over the ones from the secret
+extraEnv: []
+
+probes:
+  startup:
+    httpGet: { path: /, port: http }
+    periodSeconds: 5
+    failureThreshold: 24
+    timeoutSeconds: 3
+  liveness:
+    httpGet: { path: /, port: http }
+    periodSeconds: 10
+    failureThreshold: 3
+    timeoutSeconds: 3
+  readiness:
+    httpGet: { path: /, port: http }
+    periodSeconds: 5
+    failureThreshold: 3
+    timeoutSeconds: 3
+
+# gives the ALB time to deregister the target before the app stops accepting connections
+lifecycle:
+  preStop:
+    sleep:
+      seconds: 15
+terminationGracePeriodSeconds: 45
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+
+topologySpread:
+  enabled: true
+  constraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Argo Rollouts writes the weights into the alb.ingress.kubernetes.io/actions.<stable> annotation
+# of the Ingress. It must not be in git: if ArgoCD managed it, it would reset the weights mid-canary
+canary:
+  steps:
+    - setWeight: 20
+    - pause: { duration: 2m }
+    - setWeight: 50
+    - pause: { duration: 2m }
+  # keeps the canary pods a bit after an abort so the ALB can drain them
+  abortScaleDownDelaySeconds: 30
+  # optional AnalysisTemplates. Empty = readiness + progressDeadlineAbort only
+  analysis: {}
+
+service:
+  port: 80
+  annotations: {}
+
+ingress:
+  enabled: true
+  className: alb-public
+  host: app.example.com
+  annotations:
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "10"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "3"
+    alb.ingress.kubernetes.io/success-codes: "200"
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1

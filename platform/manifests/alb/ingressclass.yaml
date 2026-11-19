@@ -1,0 +1,24 @@
+# internet-facing ALB with the controller built into EKS Auto Mode.
+# Auto Mode picks the public subnets tagged kubernetes.io/role/elb
+apiVersion: eks.amazonaws.com/v1
+kind: IngressClassParams
+metadata:
+  name: alb-public
+spec:
+  scheme: internet-facing
+  # every Ingress of this class shares one ALB
+  group:
+    name: public
+  certificateARNs:
+    - arn:aws:acm:us-east-1:111111111111:certificate/00000000-0000-0000-0000-000000000000
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: alb-public
+spec:
+  controller: eks.amazonaws.com/alb
+  parameters:
+    apiGroup: eks.amazonaws.com
+    kind: IngressClassParams
+    name: alb-public

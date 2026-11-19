@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo
+  namespace: argocd
+spec:
+  project: apps
+  sources:
+    - repoURL: https://github.com/naktakalah/eks-gitops.git
+      # chart release tag (<chart>-<version>), never main
+      targetRevision: web-app-0.1.0
+      path: charts/web-app
+      helm:
+        releaseName: demo
+        valueFiles:
+          - $values/apps/values/demo.yaml
+    - repoURL: https://github.com/naktakalah/eks-gitops.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: apps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    # no ServerSideApply here: with SSA the Service selector is an atomic map and ArgoCD would
+    # remove the rollouts-pod-template-hash that Argo Rollouts adds to it
+    syncOptions:
+      - CreateNamespace=true

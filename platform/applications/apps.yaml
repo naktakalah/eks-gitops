@@ -1,0 +1,21 @@
+# app-of-apps for the workloads. High wave: needs the Rollout and ExternalSecret CRDs first
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/naktakalah/eks-gitops.git
+    targetRevision: main
+    path: apps/applications
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

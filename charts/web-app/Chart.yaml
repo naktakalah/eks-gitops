@@ -1,0 +1,7 @@
+apiVersion: v2
+name: web-app
+description: HTTP service deployed as an Argo Rollouts canary with ALB traffic routing, stable/canary Services, Ingress and ExternalSecret
+type: application
+version: 0.1.0
+# default image tag, environments set image.tag
+appVersion: "blue"

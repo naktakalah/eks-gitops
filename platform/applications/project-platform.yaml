@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  description: Cluster add-ons
+  sourceRepos:
+    - https://github.com/naktakalah/eks-gitops.git
+    - https://argoproj.github.io/argo-helm
+    - https://charts.external-secrets.io
+    - https://kubernetes-sigs.github.io/external-dns/
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "*"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"

@@ -1,0 +1,19 @@
+# applied once by hand after installing argocd with helm, everything else comes from git
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/naktakalah/eks-gitops.git
+    targetRevision: main
+    path: platform/applications
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

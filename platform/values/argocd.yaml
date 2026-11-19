@@ -1,0 +1,41 @@
+# same file for the first helm install and for the argocd Application
+global:
+  domain: argocd.example.com
+
+configs:
+  params:
+    server.insecure: true # TLS ends at the ALB
+  cm:
+    # without this, sync waves in the app-of-apps don't wait for each component to be healthy
+    resource.customizations.health.argoproj.io_Application: |
+      hs = {}
+      hs.status = "Progressing"
+      hs.message = ""
+      if obj.status ~= nil and obj.status.health ~= nil then
+        hs.status = obj.status.health.status
+        if obj.status.health.message ~= nil then
+          hs.message = obj.status.health.message
+        end
+      end
+      return hs
+
+notifications:
+  enabled: false
+
+dex:
+  enabled: false
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: alb-public
+    path: /
+    pathType: Prefix
+    annotations:
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+      alb.ingress.kubernetes.io/ssl-redirect: "443"
+      alb.ingress.kubernetes.io/healthcheck-path: /healthz
+      # source-ip condition on the listener rule instead of inbound-cidrs, which would lock the
+      # whole shared ALB. Other IPs get the ALB's default 404
+      alb.ingress.kubernetes.io/conditions.argocd-server: '[{"field": "source-ip", "sourceIpConfig": {"values": ["203.0.113.10/32"]}}]'

@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: apps
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  description: Workloads. Everything goes to the apps namespace
+  sourceRepos:
+    - https://github.com/naktakalah/eks-gitops.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: apps
+  # it can create its namespace (CreateNamespace=true) and nothing else cluster-wide
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
